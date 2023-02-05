@@ -22,8 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const app = (0, express_1.default)();
 const database = {
     users: [
@@ -63,7 +67,7 @@ const database = {
 };
 app.use((0, express_1.json)());
 app.get("/", (req, res) => {
-    res.send("this working");
+    res.json(database.users);
 });
 app.post("/signin", (req, res) => {
     const body = req.body;
@@ -79,19 +83,47 @@ app.post("/signin", (req, res) => {
 });
 app.post("/register", (req, res) => {
     const body = req.body;
+    const hashedPass = bcrypt_1.default.hashSync(body.password, 10);
     database.users.push({
         id: "127",
         name: body.name,
         email: body.email,
-        password: body.password,
+        password: hashedPass,
         entries: 0,
         joined: new Date()
     });
+    res.json(database.users[database.users.length - 1]);
+});
+app.get('/profile/:id', (req, res) => {
+    const { body } = req;
+    const { id } = req.params;
+    let found = false;
+    database.users.forEach(user => {
+        if (user.id === id) {
+            found = true;
+            return res.json(user);
+        }
+    });
+    if (!found) {
+        res.status(400).json("Not Found");
+    }
+});
+app.put("/image", (req, res) => {
+    const { id } = req.body;
+    let found = false;
+    database.users.forEach(user => {
+        if (user.id === id) {
+            found = true;
+            user.entries++;
+            return res.json(user.entries);
+        }
+    });
+    if (!found) {
+        res.status(400).json("Not Found");
+    }
 });
 app.listen(3001, () => console.log(`running on 3001`));
 /*
-/signin -- POST == succes/fail
-/register -- POST = user
 /profile/:userId ==> GET = user
 /image --> PUT == user
 */ 
