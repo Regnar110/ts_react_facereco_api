@@ -29,6 +29,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const cors_1 = __importDefault(require("cors"));
+const dotenv = __importStar(require("dotenv"));
+dotenv.config();
+const faceRecognition_1 = require("./utils/faceRecognition");
 const app = (0, express_1.default)();
 const database = {
     users: [
@@ -73,26 +76,17 @@ app.get("/", (req, res) => {
 });
 app.post("/signin", (req, res) => {
     const body = req.body;
-    const matchedUser = database.users.filter(user => {
-        return body.email === user.email && body.password === user.password;
-    });
+    const matchedUser = database.users.filter(user => body.email === user.email && body.password === user.password);
     if (matchedUser.length > 0) {
-        delete matchedUser[0].password;
+        const userClone = structuredClone(matchedUser[0]);
+        //używamy structuredClone by nie ingierować metodą delete w oryginalny obiekt w pamięci.
+        delete userClone.password;
         console.log(matchedUser);
-        res.status(200).json(matchedUser);
+        res.status(200).json(userClone);
     }
     else {
         res.status(400).json("user not found");
     }
-    // if(body.email === database.users[0].email &&
-    // body.password === database.users[0].password) {
-    //     res.json("succes")
-    // } else {
-    //     res.status(400).json("error logging in")
-    // }
-    console.log(body);
-    console.log(matchedUser);
-    // res.json() działa jak .send() tylko że od razu wysyła w formacie JSON
 });
 app.post("/register", (req, res) => {
     const body = req.body;
@@ -105,7 +99,9 @@ app.post("/register", (req, res) => {
         entries: 0,
         joined: new Date()
     });
-    res.json(database.users[database.users.length - 1]);
+    const userClone = structuredClone(database.users[database.users.length - 1]);
+    delete userClone.password;
+    res.json(userClone);
 });
 app.get('/profile/:id', (req, res) => {
     const { body } = req;
@@ -121,18 +117,16 @@ app.get('/profile/:id', (req, res) => {
         res.status(400).json("Not Found");
     }
 });
-app.put("/image", (req, res) => {
-    const { id } = req.body;
-    let found = false;
-    database.users.forEach(user => {
-        if (user.id === id) {
-            found = true;
-            user.entries++;
-            return res.json(user.entries);
-        }
-    });
-    if (!found) {
-        res.status(400).json("Not Found");
+app.put("/image", async (req, res) => {
+    const { id, imageURL } = req.body;
+    console.log(`image url to: ${imageURL}`);
+    const fr_response = await (0, faceRecognition_1.faceRecognition)(imageURL);
+    if (typeof fr_response === "boolean") {
+        res.json("There is no faces on image");
+    }
+    else {
+        console.log(fr_response);
+        res.json(fr_response);
     }
 });
 app.listen(3001, () => console.log(`running on 3001`));

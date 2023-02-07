@@ -2,6 +2,9 @@ import express, {json, Request, Response, Express, NextFunction } from "express"
 import { RegisterReq, SignInReq } from "./Interfaces/request_inerfaces";
 import bcrypt from "bcrypt"
 import cors from "cors"
+import * as dotenv from 'dotenv'
+dotenv.config()
+import { faceRecognition } from "./utils/faceRecognition";
 
 const app:Express = express();
 interface USER_DATA {
@@ -60,26 +63,16 @@ app.get("/", (req, res) => {
 
 app.post("/signin", (req,res) => {
     const body:SignInReq = req.body
-    const matchedUser:USER_DATA[] = database.users.filter(user => {
-        return body.email === user.email && body.password === user.password
-    })
-
+    const matchedUser:USER_DATA[] = database.users.filter(user => body.email === user.email && body.password === user.password)
     if(matchedUser.length > 0) {
-        delete matchedUser[0].password
+        const userClone = structuredClone(matchedUser[0]);
+        //używamy structuredClone by nie ingierować metodą delete w oryginalny obiekt w pamięci.
+        delete userClone.password
         console.log(matchedUser)
-        res.status(200).json(matchedUser)
+        res.status(200).json(userClone)
     } else {
         res.status(400).json("user not found")
     }
-    // if(body.email === database.users[0].email &&
-    // body.password === database.users[0].password) {
-    //     res.json("succes")
-    // } else {
-    //     res.status(400).json("error logging in")
-    // }
-    console.log(body) 
-    console.log(matchedUser)
-    // res.json() działa jak .send() tylko że od razu wysyła w formacie JSON
 })
 
 app.post("/register", (req,res) => {
@@ -93,7 +86,9 @@ app.post("/register", (req,res) => {
         entries: 0,
         joined: new Date()
     })
-    res.json(database.users[database.users.length-1])
+    const userClone:USER_DATA = structuredClone(database.users[database.users.length-1])
+    delete userClone.password
+    res.json(userClone)
 })
 
 app.get('/profile/:id', (req, res) => {
@@ -111,19 +106,17 @@ app.get('/profile/:id', (req, res) => {
     }
 })
 
-app.put("/image", (req, res) => {
-    const {id} = req.body;
-    let found = false
-    database.users.forEach(user => {
-        if(user.id === id) {
-            found = true
-            user.entries++
-            return res.json(user.entries)
-        }
-    })
-    if(!found){
-        res.status(400).json("Not Found")
+app.put("/image", async (req, res) => {
+    const {id, imageURL} = req.body;
+    console.log(`image url to: ${imageURL}`)
+    const fr_response =  await faceRecognition(imageURL)
+    if(typeof fr_response === "boolean") {
+        res.json("There is no faces on image")
+    } else {
+        console.log(fr_response)
+        res.json(fr_response)
     }
+    
     
 })
 
