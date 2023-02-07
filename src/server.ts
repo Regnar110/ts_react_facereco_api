@@ -1,8 +1,17 @@
 import express, {json, Request, Response, Express, NextFunction } from "express"
 import { RegisterReq, SignInReq } from "./Interfaces/request_inerfaces";
 import bcrypt from "bcrypt"
+import cors from "cors"
 
-const app:Express = express()
+const app:Express = express();
+interface USER_DATA {
+    id:string,
+    name:string,
+    email:string,
+    password?:string,
+    entries:number,
+    joined: Date
+}
 
 const database = {
     users: [
@@ -42,6 +51,7 @@ const database = {
 }
 
 app.use(json());
+app.use(cors())
 
 app.get("/", (req, res) => {
     res.json(database.users)
@@ -50,13 +60,25 @@ app.get("/", (req, res) => {
 
 app.post("/signin", (req,res) => {
     const body:SignInReq = req.body
-    if(body.email === database.users[0].email &&
-    body.password === database.users[0].password) {
-            res.json("succes")
+    const matchedUser:USER_DATA[] = database.users.filter(user => {
+        return body.email === user.email && body.password === user.password
+    })
+
+    if(matchedUser.length > 0) {
+        delete matchedUser[0].password
+        console.log(matchedUser)
+        res.status(200).json(matchedUser)
     } else {
-        res.status(400).json("error logging in")
+        res.status(400).json("user not found")
     }
+    // if(body.email === database.users[0].email &&
+    // body.password === database.users[0].password) {
+    //     res.json("succes")
+    // } else {
+    //     res.status(400).json("error logging in")
+    // }
     console.log(body) 
+    console.log(matchedUser)
     // res.json() działa jak .send() tylko że od razu wysyła w formacie JSON
 })
 

@@ -28,6 +28,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 const database = {
     users: [
@@ -66,19 +67,31 @@ const database = {
     ]
 };
 app.use((0, express_1.json)());
+app.use((0, cors_1.default)());
 app.get("/", (req, res) => {
     res.json(database.users);
 });
 app.post("/signin", (req, res) => {
     const body = req.body;
-    if (body.email === database.users[0].email &&
-        body.password === database.users[0].password) {
-        res.json("succes");
+    const matchedUser = database.users.filter(user => {
+        return body.email === user.email && body.password === user.password;
+    });
+    if (matchedUser.length > 0) {
+        delete matchedUser[0].password;
+        console.log(matchedUser);
+        res.status(200).json(matchedUser);
     }
     else {
-        res.status(400).json("error logging in");
+        res.status(400).json("user not found");
     }
+    // if(body.email === database.users[0].email &&
+    // body.password === database.users[0].password) {
+    //     res.json("succes")
+    // } else {
+    //     res.status(400).json("error logging in")
+    // }
     console.log(body);
+    console.log(matchedUser);
     // res.json() działa jak .send() tylko że od razu wysyła w formacie JSON
 });
 app.post("/register", (req, res) => {
