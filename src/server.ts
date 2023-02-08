@@ -16,13 +16,13 @@ interface USER_DATA {
     joined: Date
 }
 
-const database = {
+let database = {
     users: [
         {
             id: "123",
             name: "John",
             email: "john@gmail.com",
-            password: "cookies",
+            password: bcrypt.hashSync("cookies", 10),
             entries: 0,
             joined: new Date()
         },
@@ -30,7 +30,7 @@ const database = {
             id: "124",
             name: "Mati",
             email: "Mati@gmail.com",
-            password: "ciastko",
+            password: bcrypt.hashSync("ciastko", 10),
             entries: 1,
             joined: new Date()
         },
@@ -38,7 +38,7 @@ const database = {
             id: "125",
             name: "Jan",
             email: "jan@gmail.com",
-            password: "arbuz",
+            password: bcrypt.hashSync("arbuz", 10),
             entries: 3,
             joined: new Date()
         },
@@ -46,7 +46,7 @@ const database = {
             id: "126",
             name: "Kamil",
             email: "kamil@gmail.com",
-            password: "raples",
+            password: bcrypt.hashSync("raples", 10),
             entries: 10,
             joined: new Date()
         }
@@ -63,7 +63,11 @@ app.get("/", (req, res) => {
 
 app.post("/signin", (req,res) => {
     const body:SignInReq = req.body
-    const matchedUser:USER_DATA[] = database.users.filter(user => body.email === user.email && body.password === user.password)
+    console.log(database)
+    const matchedUser:USER_DATA[] = database.users.filter(user =>{
+        const passwordMatched = bcrypt.compareSync(body.password, user.password);
+        return body.email === user.email && passwordMatched     
+    })
     if(matchedUser.length > 0) {
         const userClone = structuredClone(matchedUser[0]);
         //używamy structuredClone by nie ingierować metodą delete w oryginalny obiekt w pamięci.
@@ -108,13 +112,17 @@ app.get('/profile/:id', (req, res) => {
 
 app.put("/image", async (req, res) => {
     const {id, imageURL} = req.body;
-    console.log(`image url to: ${imageURL}`)
     const fr_response =  await faceRecognition(imageURL)
     if(typeof fr_response === "boolean") {
         res.json("There is no faces on image")
     } else {
-        console.log(fr_response)
-        res.json(fr_response)
+        for(let el of database.users) {
+            if(el.id === id) {
+                el.entries++
+                let entries = el.entries
+                res.json({entries, fr_response})
+            }
+        }
     }
     
     

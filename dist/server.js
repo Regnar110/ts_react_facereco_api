@@ -33,13 +33,13 @@ const dotenv = __importStar(require("dotenv"));
 dotenv.config();
 const faceRecognition_1 = require("./utils/faceRecognition");
 const app = (0, express_1.default)();
-const database = {
+let database = {
     users: [
         {
             id: "123",
             name: "John",
             email: "john@gmail.com",
-            password: "cookies",
+            password: bcrypt_1.default.hashSync("cookies", 10),
             entries: 0,
             joined: new Date()
         },
@@ -47,7 +47,7 @@ const database = {
             id: "124",
             name: "Mati",
             email: "Mati@gmail.com",
-            password: "ciastko",
+            password: bcrypt_1.default.hashSync("ciastko", 10),
             entries: 1,
             joined: new Date()
         },
@@ -55,7 +55,7 @@ const database = {
             id: "125",
             name: "Jan",
             email: "jan@gmail.com",
-            password: "arbuz",
+            password: bcrypt_1.default.hashSync("arbuz", 10),
             entries: 3,
             joined: new Date()
         },
@@ -63,7 +63,7 @@ const database = {
             id: "126",
             name: "Kamil",
             email: "kamil@gmail.com",
-            password: "raples",
+            password: bcrypt_1.default.hashSync("raples", 10),
             entries: 10,
             joined: new Date()
         }
@@ -76,7 +76,11 @@ app.get("/", (req, res) => {
 });
 app.post("/signin", (req, res) => {
     const body = req.body;
-    const matchedUser = database.users.filter(user => body.email === user.email && body.password === user.password);
+    console.log(database);
+    const matchedUser = database.users.filter(user => {
+        const passwordMatched = bcrypt_1.default.compareSync(body.password, user.password);
+        return body.email === user.email && passwordMatched;
+    });
     if (matchedUser.length > 0) {
         const userClone = structuredClone(matchedUser[0]);
         //używamy structuredClone by nie ingierować metodą delete w oryginalny obiekt w pamięci.
@@ -119,14 +123,18 @@ app.get('/profile/:id', (req, res) => {
 });
 app.put("/image", async (req, res) => {
     const { id, imageURL } = req.body;
-    console.log(`image url to: ${imageURL}`);
     const fr_response = await (0, faceRecognition_1.faceRecognition)(imageURL);
     if (typeof fr_response === "boolean") {
         res.json("There is no faces on image");
     }
     else {
-        console.log(fr_response);
-        res.json(fr_response);
+        for (let el of database.users) {
+            if (el.id === id) {
+                el.entries++;
+                let entries = el.entries;
+                res.json({ entries, fr_response });
+            }
+        }
     }
 });
 app.listen(3001, () => console.log(`running on 3001`));
