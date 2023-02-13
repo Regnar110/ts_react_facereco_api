@@ -32,6 +32,7 @@ const cors_1 = __importDefault(require("cors"));
 const knex_1 = require("knex");
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
+//Utils
 const faceRecognition_1 = require("./utils/faceRecognition");
 const config = {
     client: 'pg',
@@ -50,24 +51,28 @@ app.use((0, cors_1.default)());
 app.get("/", (req, res) => {
     res.json('get connection');
 });
-app.post("/signin", (req, res) => {
-    const { password, email } = req.body;
-    db.select('email', 'has').from('login')
-        .where({ email: email })
-        .then(data => {
-        const passwordMatched = bcrypt_1.default.compareSync(password, data[0].has);
-        if (passwordMatched) {
-            return db.select('*').from('users')
-                .where('email', email)
-                .then(user => {
+app.post("/signin", async (req, res) => {
+    try {
+        const { password, email } = req.body;
+        const loginRowData = await db('login').select('email', 'has').where({ email: email });
+        const passwordMatched = bcrypt_1.default.compareSync(password, loginRowData[0].has);
+        try {
+            if (passwordMatched) {
+                const user = await db('users').select('*')
+                    .where('email', email);
                 res.json(user[0]);
-            })
-                .catch(err => res.json('sign in passwordMatch db select error'));
+            }
+            else {
+                res.json("There is no such user");
+            }
         }
-        else {
-            res.json("wron email or password");
+        catch (err) {
+            res.status(400).json('400: /Signin internal user return error!');
         }
-    }).catch(err => res.json('/signin route db select error'));
+    }
+    catch (err) {
+        res.status(400).json('400: /Signin overall route error!');
+    }
 });
 app.post("/register", (req, res) => {
     const { name, email, password } = req.body;
@@ -91,6 +96,7 @@ app.post("/register", (req, res) => {
             .catch(err => trx.rollback);
     });
 });
+//PROFILE/:ID FOR FURTHER IMPLEMENATIONS - NOT USED RIGHT NOW
 app.get('/profile/:id', (req, res) => {
     const { id } = req.params;
     db.select('*').from('users').where('id', id).then(user => {
@@ -106,18 +112,24 @@ app.get('/profile/:id', (req, res) => {
 });
 app.put("/image", async (req, res) => {
     const { id, imageURL } = req.body;
-    const fr_response = await (0, faceRecognition_1.faceRecognition)(imageURL);
-    if (typeof fr_response === "boolean") {
-        res.json("There is no faces on image");
+    try {
+        const fr_response = await (0, faceRecognition_1.faceRecognition)(imageURL);
+        if (typeof fr_response === "boolean") {
+            res.json("There is no faces on image");
+        }
+        else {
+            try {
+                const entries = await db('users')
+                    .where('id', id).increment('entries', 1).returning('entries');
+                res.json({ entries: entries[0].entries, fr_response });
+            }
+            catch (err) {
+                res.status(400).json('/image route updating entries and fr_response error!');
+            }
+        }
     }
-    else {
-        db('users').where('id', '=', id).increment('entries', 1).returning('entries').then(entries => {
-            res.json({ entries: entries[0].entries, fr_response });
-        });
+    catch (err) {
+        res.status(400).json("/image route overall error!");
     }
 });
 app.listen(3001, () => console.log(`running on 3001`));
-/*
-/profile/:userId ==> GET = user
-/image --> PUT == user
-*/ 

@@ -1,12 +1,16 @@
 import express, {json, Request, Response, Express, NextFunction } from "express"
-import { RegisterReq, SignInReq } from "./Interfaces/request_inerfaces";
 import bcrypt from "bcrypt"
 import cors from "cors"
 import { Knex, knex } from 'knex'
 import * as dotenv from 'dotenv'
 dotenv.config()
+
+//Utils
 import { faceRecognition } from "./utils/faceRecognition";
 
+//Interfaces
+import { RegisterReq, SignInReq } from "./Interfaces/request_inerfaces";
+import { LoginRow, ReturnedUser, ReturnedEntries } from "./Interfaces/psql_interfaces"
 const config:Knex.Config = {
     client: 'pg',
     connection: {
@@ -38,24 +42,28 @@ app.get("/", (req, res) => {
 })
 
 
-app.post("/signin", (req,res) => {
-    const {password, email}:SignInReq = req.body
-    db.select('email', 'has').from('login')
-    .where({email: email})
-    .then(data => {
-        const passwordMatched = bcrypt.compareSync(password, data[0].has);
-        if(passwordMatched) {
-            return db.select('*').from('users')
-            .where('email', email)
-            .then(user => {
+app.post("/signin", async (req,res) => {
+    try {
+        const {password, email}:SignInReq = req.body
+        const loginRowData = await db<LoginRow>('login').select('email', 'has').where({email: email})
+        const passwordMatched:boolean = bcrypt.compareSync(password, loginRowData[0].has);
+        try {
+            if(passwordMatched) {
+                const user = await db<ReturnedUser>('users').select('*')
+                    .where('email', email)
                 res.json(user[0])
-            })
-            .catch(err => res.json('sign in passwordMatch db select error'))
-        } else {
-           res.json("wron email or password") 
+            } else {
+                res.json("There is no such user")
+            }             
+        } catch(err) {
+            res.status(400).json('400: /Signin internal user return error!')
         }
-    }).catch(err => res.json('/signin route db select error'))
+    } catch(err) {
+        res.status(400).json('400: /Signin overall route error!')
+    }
 })
+
+
 
 app.post("/register", (req,res) => {
     const {name, email, password}:RegisterReq = req.body
@@ -79,6 +87,8 @@ app.post("/register", (req,res) => {
         .catch(err => trx.rollback)
     })
 })
+
+//PROFILE/:ID FOR FURTHER IMPLEMENATIONS - NOT USED RIGHT NOW
 app.get('/profile/:id', (req, res) => {
     const {id} = req.params
     db.select('*').from('users').where('id', id).then(user => {
@@ -96,21 +106,22 @@ app.get('/profile/:id', (req, res) => {
 
 app.put("/image", async (req, res) => {
     const {id, imageURL} = req.body;
-    const fr_response =  await faceRecognition(imageURL)
-    if(typeof fr_response === "boolean") {
-        res.json("There is no faces on image")
-    } else {
-        db('users').where('id', '=', id).increment('entries', 1).returning('entries').then(entries => {
-            res.json({entries:entries[0].entries, fr_response})
-        })
+    try {
+        const fr_response =  await faceRecognition(imageURL)
+        if(typeof fr_response === "boolean") {
+            res.json("There is no faces on image")
+        } else {
+            try{
+                const entries = await db<ReturnedEntries>('users')
+                .where('id', id).increment('entries', 1).returning('entries')
+                res.json({entries: entries[0].entries, fr_response})
+            } catch(err) {
+                res.status(400).json('/image route updating entries and fr_response error!')
+            }
+        }
+    } catch(err) {
+        res.status(400).json("/image route overall error!")
     }
-    
-    
 })
 
 app.listen(3001, () => console.log(`running on 3001`))
-
-/*
-/profile/:userId ==> GET = user
-/image --> PUT == user
-*/
