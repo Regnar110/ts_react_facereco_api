@@ -27,75 +27,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
-const bcrypt_1 = __importDefault(require("bcrypt"));
 const cors_1 = __importDefault(require("cors"));
 const knex_1 = require("knex");
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
-//Utils
-const faceRecognition_1 = require("./utils/faceRecognition");
-const config = {
-    client: 'pg',
-    connection: {
-        host: '127.0.0.1',
-        port: 5432,
-        user: 'postgres',
-        password: '587188Ab',
-        database: 'smartbrain'
-    }
-};
-const db = (0, knex_1.knex)(config); // knex INIT
-const app = (0, express_1.default)();
-app.use((0, express_1.json)());
-app.use((0, cors_1.default)());
-app.get("/", (req, res) => {
-    res.json('get connection');
-});
-app.post("/signin", async (req, res) => {
-    try {
-        const { password, email } = req.body;
-        const loginRowData = await db('login').select('email', 'has').where({ email: email });
-        const passwordMatched = bcrypt_1.default.compareSync(password, loginRowData[0].has);
-        try {
-            if (passwordMatched) {
-                const user = await db('users').select('*')
-                    .where('email', email);
-                res.json(user[0]);
-            }
-            else {
-                res.json("There is no such user");
-            }
-        }
-        catch (err) {
-            res.status(400).json('400: /Signin internal user return error!');
-        }
-    }
-    catch (err) {
-        res.status(400).json('400: /Signin overall route error!');
-    }
-});
-app.post("/register", (req, res) => {
-    const { name, email, password } = req.body;
-    const hashedPass = bcrypt_1.default.hashSync(password, 10);
-    db.transaction(trx => {
-        trx('login').insert({
-            has: hashedPass,
-            email: email
-        })
-            .returning('email')
-            .then(loginEmail => {
-            trx('users').returning('*').insert({
-                email: loginEmail[0].email,
-                name: name,
-                joined: new Date()
-            }).then(user => {
-                res.json(user[0]);
-            }).catch(err => res.json('Unable to register'));
-        })
-            .then(trx.commit)
-            .catch(err => trx.rollback);
-    });
-});
+//Knex Config file
+const knex_config_1 = require("./utils/knex_config");
+//Controlers 
+const signin_1 = require("./controllers/signin");
+const register_1 = require("./controllers/register");
+const image_1 = require("./controllers/image");
+const db = (0, knex_1.knex)(knex_config_1.knex_config); // knex INIT
+const app = (0, express_1.default)(); // express INIT
+app.use((0, express_1.json)()); // ENABLE BODY PARSING FROM express.js
+app.use((0, cors_1.default)()); // CORS for enabling !"unsafe"! connections
+app.post("/signin", (req, res) => (0, signin_1.singIn)(req, res, db));
+app.post("/register", (req, res) => (0, register_1.register)(req, res, db));
+app.put("/image", (req, res) => (0, image_1.image)(req, res, db));
 //PROFILE/:ID FOR FURTHER IMPLEMENATIONS - NOT USED RIGHT NOW
 app.get('/profile/:id', (req, res) => {
     const { id } = req.params;
@@ -109,27 +57,5 @@ app.get('/profile/:id', (req, res) => {
     }).catch(err => {
         res.status(400).json("Error getting user");
     });
-});
-app.put("/image", async (req, res) => {
-    const { id, imageURL } = req.body;
-    try {
-        const fr_response = await (0, faceRecognition_1.faceRecognition)(imageURL);
-        if (typeof fr_response === "boolean") {
-            res.json("There is no faces on image");
-        }
-        else {
-            try {
-                const entries = await db('users')
-                    .where('id', id).increment('entries', 1).returning('entries');
-                res.json({ entries: entries[0].entries, fr_response });
-            }
-            catch (err) {
-                res.status(400).json('/image route updating entries and fr_response error!');
-            }
-        }
-    }
-    catch (err) {
-        res.status(400).json("/image route overall error!");
-    }
 });
 app.listen(3001, () => console.log(`running on 3001`));
