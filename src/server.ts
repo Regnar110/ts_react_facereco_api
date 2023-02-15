@@ -39,4 +39,4 @@ app.get('/profile/:id', (req, res) => {
 })
 
 
-app.listen(3001, () => console.log(`running on 3001`))
+app.listen(process.env.PORT || 3001, () => console.log('Running'))
