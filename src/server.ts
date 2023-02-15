@@ -16,6 +16,10 @@ const app:Express = express(); // express INIT
 app.use(json()); // ENABLE BODY PARSING FROM express.js
 app.use(cors()) // CORS for enabling !"unsafe"! connections
 
+app.get('/', (req, res) => {
+    res.send("<h1>HELLOOOO HERE</h1>")
+})
+
 app.post("/signin", (req, res) => singIn(req, res, db))
 
 app.post("/register", (req,res) => register(req, res, db))
