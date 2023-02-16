@@ -15,9 +15,10 @@ const app:Express = express(); // express INIT
 
 app.use(json()); // ENABLE BODY PARSING FROM express.js
 app.use(cors()) // CORS for enabling !"unsafe"! connections
+app.set('trust proxy', true);
 
 app.get('/', (req, res) => {
-    res.send("<h1>HELLOOOO HERE</h1>")
+    res.json("JEstem")
 })
 
 app.post("/signin", (req, res) => singIn(req, res, db))
@@ -26,7 +27,7 @@ app.post("/register", (req,res) => register(req, res, db))
 
 app.put("/image", (req, res) => image(req, res, db))
 
-//PROFILE/:ID FOR FURTHER IMPLEMENATIONS - NOT USED RIGHT NOW
+//PROFILE/:ID FOR FURTHER IMPLEMENATIONS - NOT USED RIGHT NOOW
 app.get('/profile/:id', (req, res) => {
     const {id} = req.params
     db.select('*').from('users').where('id', id).then(user => {

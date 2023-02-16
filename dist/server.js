@@ -41,10 +41,14 @@ const db = (0, knex_1.knex)(knex_config_1.knex_config); // knex INIT
 const app = (0, express_1.default)(); // express INIT
 app.use((0, express_1.json)()); // ENABLE BODY PARSING FROM express.js
 app.use((0, cors_1.default)()); // CORS for enabling !"unsafe"! connections
+app.set('trust proxy', true);
+app.get('/', (req, res) => {
+    res.json("JEstem");
+});
 app.post("/signin", (req, res) => (0, signin_1.singIn)(req, res, db));
 app.post("/register", (req, res) => (0, register_1.register)(req, res, db));
 app.put("/image", (req, res) => (0, image_1.image)(req, res, db));
-//PROFILE/:ID FOR FURTHER IMPLEMENATIONS - NOT USED RIGHT NOW
+//PROFILE/:ID FOR FURTHER IMPLEMENATIONS - NOT USED RIGHT NOOW
 app.get('/profile/:id', (req, res) => {
     const { id } = req.params;
     db.select('*').from('users').where('id', id).then(user => {
@@ -58,4 +62,4 @@ app.get('/profile/:id', (req, res) => {
         res.status(400).json("Error getting user");
     });
 });
-app.listen(3001, () => console.log(`running on 3001`));
+app.listen(process.env.PORT || 3001, () => console.log('Running'));
