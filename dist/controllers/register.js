@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.register = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const register = async (req, res, db) => {
+    console.log(req);
     const { name, email, password } = req.body;
     const hashedPass = bcrypt_1.default.hashSync(password, 10);
     try {
@@ -22,6 +23,7 @@ const register = async (req, res, db) => {
                 joined: new Date()
             });
             res.json(user[0]);
+            console.log(user);
         });
     }
     catch (err) {

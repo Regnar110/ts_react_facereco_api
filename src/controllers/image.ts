@@ -5,8 +5,10 @@ import { faceRecognition } from "../utils/faceRecognition";
 
 export const image = async (req:any, res:any, db:Knex) => {
     const {id, imageURL} = req.body;
+    console.log(id, imageURL)
     try {
         const fr_response:BoundingBoxArrayOfObjects[] | boolean =  await faceRecognition(imageURL)
+        console.log(fr_response)
         if(typeof fr_response === "boolean") {
             res.json("There is no faces on image")
         } else {

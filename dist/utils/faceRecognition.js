@@ -3,9 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.faceRecognition = void 0;
 const getBoundingBoxes_1 = require("./getBoundingBoxes");
 const faceRecognition = async (IMAGE_URL) => {
-    console.log("faceRecognition:");
     const MODEL_ID = "face-detection";
-    const MODEL_VERSION_ID = "45fb9a671625463fa646c3523a3087d5";
+    const MODEL_VERSION_ID = "6dc7e46bc9124c5c8824be4822abe105";
     const faceRecoBody = {
         user_app_id: {
             user_id: process.env.FR_USER_ID,
