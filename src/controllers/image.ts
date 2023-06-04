@@ -11,6 +11,7 @@ export const image = async (req:any, res:any, db:Knex) => {
             res.json("There is no faces on image")
         } else {
             try{
+                console.log("helllo")
                 const entries:ReturnedEntries = await db<ReturnedEntries>('users')
                 .where('id', id).increment('entries', 1).returning('entries')
                 res.json({entries: entries[0].entries, fr_response})

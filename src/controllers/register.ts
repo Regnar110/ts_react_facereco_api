@@ -4,6 +4,7 @@ import { RegisterReq } from "../Interfaces/request_inerfaces"
 import bcrypt from "bcrypt";
 
 export const register = async (req:any, res:any, db:Knex) => {
+    console.log(req)
     const {name, email, password}:RegisterReq = req.body
     const hashedPass = bcrypt.hashSync(password, 10)
     try {

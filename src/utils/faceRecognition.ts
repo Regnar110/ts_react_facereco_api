@@ -1,7 +1,6 @@
 import { RequestOptions, FaceRecoBody } from "../Interfaces/request_inerfaces";
 import { getBoundingBoxes } from "./getBoundingBoxes";
 export const faceRecognition = async (IMAGE_URL:URL) => {
-    console.log("faceRecognition:")
     const MODEL_ID = "face-detection";
     const MODEL_VERSION_ID = "45fb9a671625463fa646c3523a3087d5";
 
