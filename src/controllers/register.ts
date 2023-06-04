@@ -20,6 +20,7 @@ export const register = async (req:any, res:any, db:Knex) => {
                 joined: new Date()
             })
             res.json(user[0])
+            console.log(user)
         })
     } catch(err) {
         res.status(400).json("/register route path overall error!")
